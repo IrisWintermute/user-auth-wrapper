@@ -43,7 +43,7 @@ status = StringVar()
 user_authenticated = None # empty variable, assigned instance of Certification() if authentication is successful 
 
 sec_level_list = ["guest","member","moderator","supervisor","admin","overseer"]
-valid_email_suffixes = [".com", ".co.uk", ".gov", ".net", ".io"]
+valid_tlds = [".com", ".co.uk", ".gov", ".net", ".io"]
 
 
 def clearvariables():
@@ -160,8 +160,8 @@ def validateemail(email):
     # email rules:
     # address must contain at least one . and one @
     # [a@b.com] <-- a and b must have a minimum length of 1
-    # address suffix must be valid
-    global valid_email_suffixes
+    # address top-level domain must be valid
+    global valid_tlds
     
     # check address contains 1 @
     email_parts = email.split("@")
@@ -176,10 +176,9 @@ def validateemail(email):
     # check at least 1 character is around/between each @ and .
     elif [True for part in re.split("[@.]", email) if len(part) == 0]:
         pass
-    # check address after @ contains a valid email suffix
-    elif not [suffix for suffix in valid_email_suffixes if suffix in email_parts[1]]:
-        pass
-        status.set("Email address does not contain a valid suffix.")
+    # check address after @ contains a valid top-level domain
+    elif not [True for tld in valid_tlds if tld == ("." + email_parts[1].split(".")[1])]:
+        status.set("Email address does not contain a valid top-level domain.")
     else:
         return True
     
@@ -199,7 +198,7 @@ def validatepassword(password):
     elif not re.findall("[0-9]", password):
         status.set("password must contain at least one number.")
 
-    elif not (re.findall("[a-z]", password) or re.findall("[A-Z]", password)):
+    elif not (re.findall("[a-zA-Z]", password)):
         status.set("Password must contain characters in the alphabet.")
 
     elif password.isupper() or password.islower():
