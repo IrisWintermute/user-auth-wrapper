@@ -226,57 +226,74 @@ def submitnewuser():
         user_sec = sec_level_list[0]
 
     # confirm username, email and passwords have been entered
-    if username and email and password and password_2:
-        # confirm username, email and password meet requirements
-        if validateusername(username) and validateemail(email) and validatepassword(password):
-            # confirm entered passwords match
-            if password == password_2:
-                uuid_user = getuseruuid()
-                user_hash = gethash(uuid_user, password)
-                sec_hash = gethash(uuid_user, user_sec)
-
-                # add user parameters to userdata.txt
-                user_accepted = adduserparams(username, email, uuid_user, user_hash, sec_hash)
-                if user_accepted:
-                    existinguserwindow()
-                    status.set("New user registered. Awaiting entry...")
-                else:
-                    status.set("Username has already been taken.")
-            else:
-                status.set("Passwords do not match.")
-    elif not username:
+    if not username:
         status.set("Username has not been entered.")
-    elif not email:
+        return None
+    if not email:
         status.set("Email address has not been entered.")
-    elif not (password and password_2):
+        return None
+    if not password:
         status.set("Password has not been entered.")
+        return None
+    if not password_2:
+        status.set("Password has not been confirmed.")
+        return None
+
+    # confirm username, email and password meet requirements
+    if not (validateusername(username) and validateemail(email) and validatepassword(password)):
+        return None
+    
+    # confirm entered passwords match
+    if password != password_2:
+        status.set("Passwords do not match.")
+        return None
+
+    uuid_user = getuseruuid()
+    user_hash = gethash(uuid_user, password)
+    sec_hash = gethash(uuid_user, user_sec)
+
+    # add user parameters to userdata.txt
+    user_accepted = adduserparams(username, email, uuid_user, user_hash, sec_hash)
+    if not user_accepted:
+        status.set("Username has already been taken.")
+        return None
+
+    # load login window
+    existinguserwindow()
+    status.set("New user registered. Awaiting entry...")
 
 def submitentry():
     username = username_entry.get()
     password = password_entry.get()
     user_params = getuserparams(username)
 
-    # check username and password have been entered
-    if username and password:
-        # check for exception of user not existing
-        if user_params:
-            uuid_user = user_params[0]
-            user_hash = user_params[1]
-            user_sec_hash = user_params[2]
+    # confirm username and password have been entered
+    if not username:
+        status.set("Username has not been entered.")
+        return None
+    if not password:
+        status.set("Password has not been entered.")
+        return None
 
-            # check if hashed password input matches stored hash
-            if user_hash == gethash(uuid_user, password):
-                global user_authenticated
-                # obtain user's security level
-                user_sec_level = deriveuserseclevel(uuid_user, user_sec_hash)
-                user_authenticated = Certification(username, uuid_user, user_sec_level)
-                root.destroy()
-            else:
-                status.set("Password is incorrect.")
-        else:
-            status.set("Username not found.")
-    else:
-        status.set("Username and/or password fields are empty.")
+    # check for exception of user not existing
+    if not user_params:
+        status.set("Username not found.")
+        return None
+
+    uuid_user = user_params[0]
+    user_hash = user_params[1]
+    user_sec_hash = user_params[2]
+
+    # check if hashed password input matches stored hash
+    if user_hash != gethash(uuid_user, password):
+        status.set("Password is incorrect.")
+        return None
+    
+    global user_authenticated
+    # obtain user's security level
+    user_sec_level = deriveuserseclevel(uuid_user, user_sec_hash)
+    user_authenticated = Certification(username, uuid_user, user_sec_level)
+    root.destroy()
 
 
 def getuserparams(username):
